@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - GLTFloader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body>
+		<div id="mainContainer">
+			<div id="container">
+				<button id='pepperoni' class='animationButton'>PEPPERONI</a>
+				<button id='basil' class='animationButton1'>BASIL</a>
+				<button id='pineapple' class='animationButton2'>PINEAPPLE</a>
+			</div>
+			<button id='ar' class='animationButton4' onclick="window.open('https://qreal3d.8thwall.app/pizza')">VIEW IN AR</a>
+		  </div>
+		  
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<!-- <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script> -->
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "/js/three.module.js"
+				}
+			}
+			
+		</script>
+		
+		
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { OrbitControls } from '/js/OrbitControls.js';
+			import { GLTFLoader } from '/js/GLTFLoader.js';
+			import { RGBELoader } from '/js/RGBELoader.js';
+
+			let camera, scene, renderer,check;
+			let pepperoni,shadow,shadow2,basil,pepShadow;
+			var flagPepperoni=false
+			var flagBasil=false
+			var scaleSetX= 10
+			var scaleSetY= 10
+			var scaleSetZ= 10
+		
+			detectMob()
+			// console.log(isMobile)
+			function detectMob() {
+				if(( window.innerWidth <= 600 ) ){
+					scaleSetX =5.5
+					scaleSetY =5.5
+					scaleSetZ =5.5
+				}else{
+					console.log("pc")
+				}
+			}
+			init();
+			render();
+
+			function init() {
+
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
+				camera.position.set( - 5.8, 2, 2.8 );
+
+				scene = new THREE.Scene();
+
+				shadow = new THREE.ShadowMaterial()
+    			shadow.opacity = 0.6
+    			// shadow.color= new THREE.Color("rgb(111, 78, 55)");
+  				shadow.color= new THREE.Color("rgb(139,69,19)");
+      			shadow2 = new THREE.ShadowMaterial()
+    			shadow2.opacity = 0.4
+   				// shadow.color= new THREE.Color("rgb(111, 78, 55)");
+				// shadow2.color= new THREE.Color("rgb(139,69,19)");
+				const light = new THREE.DirectionalLight( 0xffffff, 0.2 );
+				light.position.set(0, 1.5, 0 ); //default; light shining from top
+				light.castShadow = true; // default false
+				scene.add( light );
+
+				//Set up shadow properties for the light
+				light.shadow.mapSize.set( 1024, 1024);
+				light.shadow.camera.near = 0.5; // default
+				light.shadow.camera.far = 500; // default
+			
+				new RGBELoader()
+					.setPath( '' )
+					.load( 'royal_esplanade_1k.hdr', function ( texture ) {
+
+						texture.mapping = THREE.EquirectangularReflectionMapping;
+
+						// scene.background = texture;
+						scene.background =  new THREE.Color(  1, 1, 1 );
+						scene.environment = texture;
+					
+						scene.environment.envMapIntensity =0.2
+						render();
+
+						// model
+						const GLT=null
+						
+						const loader = new GLTFLoader().setPath( 'model/' );
+						loader.load( 'pizza.glb', function ( GLT ) {
+							GLT.scene.traverse((o) => {
+							if (o.isMesh) {
+								o.castShadow = true
+								o.receiveShadow =true
+								}
+							})
+							// GLT.material.envMapIntensity =0.2
+							GLT.scene.scale.set(scaleSetX, scaleSetY, scaleSetZ)
+							pepperoni = GLT.scene.children[0]
+							basil = GLT.scene.children[1]
+							GLT.scene.children[0].visible = false
+							GLT.scene.children[1].visible = false
+				
+							scene.add( GLT.scene );
+
+							render();
+
+		
+
+							
+								
+						} );
+						loader.load( 'shadow3.glb', function ( GLT2 ) {
+							GLT2.scene.traverse((o) => {
+							if (o.isMesh) {
+									o.material = shadow
+									o.receiveShadow = true
+								}
+							})
+							GLT2.scene.position.set(0, 0.015, 0)
+							GLT2.scene.scale.set(scaleSetX, scaleSetY, scaleSetZ)
+							scene.add( GLT2.scene );
+							render();
+						} );
+						loader.load( 'shadow_pep.glb', function ( GLT3 ) {
+							GLT3.scene.traverse((o) => {
+							if (o.isMesh) {
+									o.material = shadow2
+									o.receiveShadow = true
+								}
+							})
+							// GLT3.scene.position.set(0, 0.015, 0)
+							GLT3.scene.children[0].visible = false
+							pepShadow = GLT3.scene.children[0] 
+							GLT3.scene.position.set(0, 0.005, 0)
+							GLT3.scene.scale.set(scaleSetX, scaleSetY, scaleSetZ)
+							scene.add( GLT3.scene );
+							render();
+					
+						} );
+						document.addEventListener('click', (event) => {
+        					if (event.target.id == 'pepperoni') {
+								if (flagPepperoni == 0) {
+									console.log(pepperoni.visible)
+									pepperoni.visible = true
+									pepShadow.visible =true
+									// console.log(GLT.scene.children[0].material)
+	          					} else {
+									pepperoni.visible = false
+									pepShadow.visible =false
+	        					}
+          						flagPepperoni++
+								if (flagPepperoni > 1) {
+									flagPepperoni = 0
+								}
+								render();	
+        					} 
+							if (event.target.id == 'basil') {
+								// GLT.scene.children[1].visible = false
+								if (flagBasil == 0) {
+									basil.visible = true
+								} else {
+									basil.visible = false
+					
+								}
+          						flagBasil++
+								if (flagBasil > 1) {
+									flagBasil = 0
+								}
+								render();
+        					}if (event.target.id == 'pineapple') {
+								basil.visible = false
+								pepperoni.visible = false
+								pepShadow.visible = false
+								flagPepperoni = 0
+								flagBasil = 0
+								render();
+							}
+      					})
+
+					} );
+
+
+					
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 1;
+				renderer.outputEncoding = THREE.sRGBEncoding;
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				container.appendChild( renderer.domElement );
+
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render ); // use if there is no animation loop
+				controls.minDistance = 2;
+				controls.maxDistance = 3;
+				controls.target.set( 0, -0.2, 0 );
+				var centerPosition = controls.target.clone();
+				centerPosition.y = 0;
+				var groundPosition = camera.position.clone();
+				groundPosition.y = 0;
+				var d = (centerPosition.distanceTo(groundPosition));
+
+				var origin = new THREE.Vector2(controls.target.y,0);
+				var remote = new THREE.Vector2(0,d); // replace 0 with raycasted ground altitude
+				var angleRadians = Math.atan2(remote.y - origin.y, remote.x - origin.x);
+				controls.maxPolarAngle = angleRadians-0.4;
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize );
+				// render();
+				
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+
+			//
+
+			function render() {
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
